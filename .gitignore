@@ -9,3 +9,4 @@
 
 cmake-bulid-debug/
 cmake-build-debug/cmake_install.cmake
+*.cmake
