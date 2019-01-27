@@ -6,7 +6,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -25,6 +24,7 @@
 #include <shader.h>
 #include <camera.h>
 #include <model.h>
+#include <TextRenderer.h>
 
 #include <iostream>
 #include "../thirdparty/glm/glm/simd/platform.h"
@@ -130,16 +130,20 @@ int main()
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
-
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // build and compile shaders
     // -------------------------
     Shader shader("res/shaders/cube.vs", "res/shaders/cube.fs");
     Shader shaderRef("res/shaders/cube.vs", "res/shaders/cubeRef.fs");
     Shader weponShader("res/shaders/old/basic.vs", "res/shaders/old/basic.fs");
     Shader skyboxShader("res/shaders/skyBox.vs", "res/shaders/skyBox.fs");
-
+    Shader* textShader = new Shader("res/shaders/text.vert","res/shaders/text.frag");
     Model weapon2("res/models/MPK5/MP5K.obj");
     Model weapon1("res/models/railgun/Railgun_Prototype-Wavefront OBJ.obj");
+
+    TextRenderer* textPtr = new TextRenderer(SCR_WIDTH, SCR_HEIGHT, textShader);
+    textPtr->Load("res/fonts/arial.ttf", 30);
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -298,27 +302,15 @@ int main()
         ss << ammo1;
         string ammo1str = "Weapon1: "+ss.str();
 
-        ss << ammo2;
-        string ammo2str = "Weapon2: "+ss.str();
+        stringstream ss2;
+        ss2 << ammo2;
+        string ammo2str = "Weapon2: "+ss2.str();
 
         // input
         // -----
         processInput(window);
-        // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        {
-            bool isImGuiInit = true;
-
-            ImGui::Begin("Menu", &isImGuiInit, ImGuiWindowFlags_NoTitleBar);
-            ImGui::Text("Weapon1: %d",ammo1);
-            ImGui::Text("Weapon2: %d",ammo2);
-            ImGui::End();
-        }
 
         // Rendering
-        ImGui::Render();
         glfwMakeContextCurrent(window);
 
         // render
@@ -328,6 +320,11 @@ int main()
 
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+
+
+        textPtr->RenderText(ammo1str,30.0f,(SCR_HEIGHT-150.0f),1.0f);
+
+        textPtr->RenderText(ammo2str,30.0f,(SCR_HEIGHT-100.0f),1.0f);
 
 
         // draw scene as normal
@@ -377,7 +374,6 @@ int main()
         if(weapon == 2)
          weapon2.Draw(weponShader);
 
-
         // draw skybox as last
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         skyboxShader.use();
@@ -393,7 +389,6 @@ int main()
         glDepthFunc(GL_LESS); // set depth function back to default
 
 
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
